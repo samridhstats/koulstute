@@ -1,0 +1,135 @@
+---
+title: "KSTesting"
+output: pdf_document
+date: "2024-12-31"
+---
+---
+title: "KSTest"
+output: pdf_document
+date: "2024-12-31"
+---
+---
+title: "Koul-Stute Test for Hypothesis Testing"
+author: "Your Name"
+output: html_document
+---
+
+## Introduction
+
+In this document, we perform the **Koul-Stute test** for hypothesis testing in a model with a variable. Specifically, we will test two scenarios:
+
+1. The **correct null hypothesis**, where the error term follows the true distribution.
+2. The **incorrect null hypothesis**, where the error term is drawn from a different distribution.
+
+### Setup and Parameters
+
+First, we will define the necessary parameters and functions for the test.
+
+```{r setup, include=TRUE}
+# Set working directory and seed
+setwd("/Users/samridhjoshi/Downloads")
+set.seed(789)
+
+# Initialize rejection rate vectors
+rej_rate_u_true <- numeric(100)   # Rejection rate for correct null tests
+rej_rate_u_false <- numeric(100)  # Rejection rate for incorrect null tests
+
+# ----------------------------
+# A) Loop for correct null tests
+# ----------------------------
+
+# Loop to run the correct null tests for 100 bootstraps
+for (b in 1:100) {
+  print(paste("Bootstrapping", b, "out of", 100))
+  
+  # Generate random variables for x_t and y_t_plus_1
+  x_t <- runif(1050, -1, 1)
+  y_t_plus_1 <- numeric(1050)
+  
+  # Simulate y_t_plus_1 based on the model y_t_plus_1 = Exp(1 / (0.4 + 0.2 * x_t))
+  for (i in 1:1050) {
+    y_t_plus_1[i] <- rexp(1, rate = 1 / (0.4 + 0.2 * x_t[i]))
+  }
+  
+  # Prepare the dataset and calculate u_t_plus_1 (the shock term)
+  dataset <- as.data.frame(cbind(y_t_plus_1, x_t)[-c(1:50), ])  # Remove first 50 data points
+  colnames(dataset) <- c("y_t_plus_1", "x_t")
+  u_t_plus_1 <- dataset$y_t_plus_1 - 0.4 - 0.2 * dataset$x_t
+  shocks <- as.data.frame(u_t_plus_1)
+  
+  # Compute the KS statistic for the correct null hypothesis
+  dataset_sp <- cbind(dataset, shocks)
+  s_inv_inf <- (sqrt(mean((shocks$u_t_plus_1)^2)))^(-1)
+  
+  # Define the function to compute v_n_psi
+  v_n_psi <- function(m) {
+    a <- (dataset_sp$u_t_plus_1) * (ifelse(dataset_sp$x_t <= m, 1, 0))
+    b <- (1000)^(-0.5) * sum(a)
+    return(abs(b))
+  }
+  
+  vec_value <- numeric(1000)
+  for (k in 1:1000) {
+    vec_value[k] <- v_n_psi(dataset_sp$x_t[k])
+  }
+  KS_stat_1 <- s_inv_inf * max(vec_value)
+  
+  # Rejection rate for correct null hypothesis
+  rej_rate_u_true[b] <- ifelse(KS_stat_1 > 2.22, 1, 0)
+}
+
+# Compute the average rejection rate for the correct null hypothesis
+mean_rej_rate_true <- mean(rej_rate_u_true)
+# Display the rejection rate for correct null hypothesis
+mean_rej_rate_true
+# ------------------------------
+# B) Loop for incorrect null tests
+# ------------------------------
+
+# Loop to run the incorrect null tests for 100 bootstraps
+for (b in 1:100) {
+  print(paste("Bootstrapping", b, "out of", 100))
+  
+  # Generate random variables for x_t and y_t_plus_1
+  x_t <- runif(1050, -1, 1)
+  y_t_plus_1 <- numeric(1050)
+  
+  # Simulate y_t_plus_1 based on the model y_t_plus_1 = Exp(1 / (0.4 + 0.2 * x_t))
+  for (i in 1:1050) {
+    y_t_plus_1[i] <- rexp(1, rate = 1 / (0.4 + 0.2 * x_t[i]))
+  }
+  
+  # Prepare the dataset and introduce shocks with a normal distribution (incorrect null)
+  dataset <- as.data.frame(cbind(y_t_plus_1, x_t)[-c(1:50), ])  # Remove first 50 data points
+  colnames(dataset) <- c("y_t_plus_1", "x_t")
+  
+  # Use a different shock term: normal distribution (incorrect null hypothesis)
+  u_t_plus_1 <- rnorm(1000, 1, 9)  # Wrong distribution
+  shocks <- as.data.frame(u_t_plus_1)
+  
+  # Compute the KS statistic for the incorrect null hypothesis
+  dataset_sp <- cbind(dataset, shocks)
+  s_inv_inf <- (sqrt(mean((shocks$u_t_plus_1)^2)))^(-1)
+  
+  # Define the function to compute v_n_psi
+  v_n_psi <- function(m) {
+    a <- (dataset_sp$u_t_plus_1) * (ifelse(dataset_sp$x_t <= m, 1, 0))
+    b <- (1000)^(-0.5) * sum(a)
+    return(abs(b))
+  }
+  
+  vec_value <- numeric(1000)
+  for (k in 1:1000) {
+    vec_value[k] <- v_n_psi(dataset_sp$x_t[k])
+  }
+  KS_stat_1 <- s_inv_inf * max(vec_value)
+  
+  # Rejection rate for incorrect null hypothesis
+  rej_rate_u_false[b] <- ifelse(KS_stat_1 > 2.22, 1, 0)
+}
+
+# Compute the average rejection rate for the incorrect null hypothesis
+mean_rej_rate_false <- mean(rej_rate_u_false)
+# Display the rejection rate for incorrect null hypothesis
+mean_rej_rate_false
+

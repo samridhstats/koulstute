@@ -1,0 +1,56 @@
+---
+title: "Brownian"
+output: pdf_document
+date: "2024-12-31"
+---
+
+## Simulation Code
+
+```{r setup, include=TRUE}
+# Set parameters
+T <- 1          # Total time
+n <- 1000       # Number of time steps per sample path
+dt <- T / n     # Time step size
+
+# Number of sample paths
+num_paths <- 100000
+
+# Vector to store the maximum absolute values of W(r) for each sample path
+max_values <- numeric(num_paths)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Simulate 100,000 sample paths and compute the maximum absolute value of each path
+for (i in 1:num_paths) {
+  # Simulate i.i.d. N(0,1) random variables
+  Z <- rnorm(n, mean = 0, sd = 1)
+  
+  # Compute partial sums of normalized increments (Wiener process approximation)
+  W <- cumsum(Z) * sqrt(dt)
+  
+  # Add W(0) = 0 to start the process at zero
+  W <- c(0, W)
+  
+  # Compute the maximum modulus (absolute value) of the Wiener process
+  max_values[i] <- max(abs(W))
+}
+
+# Sort the maximum values in ascending order
+sorted_max_values <- sort(max_values)
+
+# Plot the distribution of the maximum absolute values (histogram)
+hist(sorted_max_values, breaks = 50, col = "lightblue", 
+     main = "Histogram of Maximum Absolute Values of W(r)", 
+     xlab = "Max |W(r)|", ylab = "Frequency", 
+     border = "black", freq = FALSE)
+
+# Add a density plot for a smoother view
+lines(density(sorted_max_values), col = "red", lwd = 2)
+
+# Calculate the critical value at the 5% level (i.e., the 95th percentile)
+critical_value <- quantile(sorted_max_values, 0.95)
+
+# Display the critical value
+cat("Critical value at 5% level (95th percentile):", critical_value, "\n")
+
